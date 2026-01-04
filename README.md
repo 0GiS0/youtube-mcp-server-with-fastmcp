@@ -1,4 +1,4 @@
-# youtube-mcp-with-fastmcp
+# youtube-mcp-server-with-fastmcp
 
 Proyecto Python con FastMCP para integración con YouTube.
 

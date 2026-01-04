@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "youtube-mcp-with-fastmcp"
+name = "youtube-mcp-server-with-fastmcp"
 version = "0.1.0"
 description = ""
 package-mode = false
