@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "youtube-mcp-with-fastmcp"
+version = "0.1.0"
+description = ""
+package-mode = false
+authors = ["Gisela Torres"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.14,<4.0"
+fastmcp = "2.14.2"
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
