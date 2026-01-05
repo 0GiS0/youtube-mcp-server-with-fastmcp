@@ -1,9 +1,18 @@
 import os
 from fastmcp import FastMCP
+from mcp.types import Icon
 from googleapiclient.discovery import build
 
-mcp = FastMCP(name="YouTube MCP Server",
-              instructions="A FastMCP server that provides YouTube video information.")
+mcp = FastMCP(
+    name="YouTube MCP Server",
+    instructions="A FastMCP server that provides YouTube video information.",
+    icons=[
+        Icon(
+            src="https://cdn.jsdelivr.net/gh/0GiS0/youtube-mcp-server-with-fastmcp/assets/icons/youtube-server.svg",
+            mimeType="image/svg+xml",
+            sizes="64x64"),
+    ]
+)
 
 # YouTube API configuration
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
