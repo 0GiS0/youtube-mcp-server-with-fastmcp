@@ -1,25 +1,69 @@
+import os
 from fastmcp import FastMCP
+from googleapiclient.discovery import build
 
-mcp = FastMCP("YouTube MCP Server")
+mcp = FastMCP(name="YouTube MCP Server",
+              instructions="A FastMCP server that provides YouTube video information.")
+
+# YouTube API configuration
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
 
 
 @mcp.tool
-def get_video_info(topic: str) -> dict:
-    """Fetches video information from YouTube based on the given topic.
+def search_videos(topic: str, max_results: int = 5) -> dict:
+    """Fetches videos related to the given topic from YouTube.
 
     Args:
         topic (str): The topic or title of the video to search for.
+        max_results (int): Maximum number of results to return (default: 5).
 
     Returns:
         dict: A dictionary containing video information such as title, description, and URL.
     """
-    # Simulated video information for demonstration purposes
-    video_info = {
-        "title": f"Sample Video on {topic}",
-        "description": f"This is a sample description for a video about {topic}.",
-        "url": f"https://www.youtube.com/watch?v=sample_{topic.replace(' ', '_')}"
-    }
-    return video_info
+    if not YOUTUBE_API_KEY:
+        return {
+            "error": "YOUTUBE_API_KEY not set. Please set the environment variable.",
+            "instructions": "Get your API key from https://console.cloud.google.com/apis/credentials"
+        }
+
+    try:
+        # Build YouTube API client
+        youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
+
+        # Search for videos
+        search_response = youtube.search().list(
+            q=topic,
+            part='id,snippet',
+            maxResults=max_results,
+            type='video',
+            order='relevance'
+        ).execute()
+
+        # Parse results
+        videos = []
+        for item in search_response.get('items', []):
+            video_id = item['id']['videoId']
+            video = {
+                'title': item['snippet']['title'],
+                'description': item['snippet']['description'],
+                'url': f'https://www.youtube.com/watch?v={video_id}',
+                'thumbnail': item['snippet']['thumbnails']['default']['url'],
+                'channel': item['snippet']['channelTitle'],
+                'published_at': item['snippet']['publishedAt']
+            }
+            videos.append(video)
+
+        return {
+            'query': topic,
+            'total_results': len(videos),
+            'videos': videos
+        }
+
+    except Exception as e:
+        return {
+            'error': str(e),
+            'query': topic
+        }
 
 
 if __name__ == "__main__":
