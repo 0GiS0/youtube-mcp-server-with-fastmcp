@@ -10,7 +10,7 @@ mcp = FastMCP(
         Icon(
             src="https://cdn.jsdelivr.net/gh/0GiS0/youtube-mcp-server-with-fastmcp/assets/icons/youtube-server.svg",
             mimeType="image/svg+xml",
-            sizes="64x64"),
+            sizes="48x48"),
     ]
 )
 
