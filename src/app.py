@@ -99,7 +99,6 @@ if __name__ == "__main__":
     mcp.run(transport="http", port=8000)
 
 
-# TODO: Ejemplo de sampling
 @mcp.tool(icons=[Icon(
     src="https://cdn.jsdelivr.net/gh/0gis0/my-assets/icons/heart.svg",
     mimeType="image/svg+xml",
@@ -113,7 +112,11 @@ async def generate_youtube_title(ctx: Context, topic: str) -> str:
     Returns:
         str: A catchy YouTube video title.
     """
-    result = await ctx.sample(f"Generate a catchy YouTube video title based on the topic: {topic}")
+    result = await ctx.sample(messages=f"Generate a catchy YouTube video title based on the topic: {topic}. Before generating the title, search for popular titles on YouTube related to the topic.",
+                              model_preferences=[
+                                  "claude-opus-4-5", "claude-sonnet-4-5"],
+                              temperature=0.7
+                              )
     return result.text or ""
 
 # TODO: Ejemplo de elicitation
