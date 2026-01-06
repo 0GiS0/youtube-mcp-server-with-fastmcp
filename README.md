@@ -17,4 +17,5 @@ poetry run python src/app.py
 o bien usando el CLI de FastMCP
 
 ```bash
-fastmcp run src/app.py:mcp
+source .env
+poetry run fastmcp run src/app.py:mcp --transport http --port 8000
