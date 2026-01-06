@@ -1,7 +1,6 @@
 import os
 from fastmcp import FastMCP
 from mcp.types import Icon
-from googleapiclient.discovery import build
 
 mcp = FastMCP(
     name="YouTube MCP Server",
@@ -10,7 +9,8 @@ mcp = FastMCP(
         Icon(
             src="https://cdn.jsdelivr.net/gh/0GiS0/youtube-mcp-server-with-fastmcp/assets/icons/youtube-server.svg",
             mimeType="image/svg+xml",
-            sizes="48x48"),
+            sizes=["48x48"])
+
     ]
 )
 
@@ -18,7 +18,12 @@ mcp = FastMCP(
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
 
 
-@mcp.tool
+@mcp.tool(
+    icons=[Icon(
+        src="https://cdn.jsdelivr.net/gh/0GiS0/youtube-mcp-server-with-fastmcp/assets/icons/search-videos.svg",
+        mimeType="image/svg+xml",
+        sizes=["48x48"])],
+)
 def search_videos(topic: str, max_results: int = 5) -> dict:
     """Fetches videos related to the given topic from YouTube.
 
