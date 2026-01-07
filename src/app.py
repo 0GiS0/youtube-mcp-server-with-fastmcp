@@ -1,32 +1,48 @@
 import os
 from fastmcp import FastMCP, Context
 from mcp.types import Icon
-from googleapiclient.discovery import build
 from pydantic import Field
+from dataclasses import dataclass
+from services import YouTubeService
 
-mcp = FastMCP(
-    name="YouTube MCP Server",
-    instructions="A FastMCP server that provides YouTube video information.",
-    icons=[
-        Icon(
-            src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgcHJlc2VydmVBc3BlY3RSYXRpbz0ieE1pZFlNaWQgbWVldCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8IS0tIFNlcnZpZG9yL0Jhc2UgLS0+CiAgPHJlY3QgeD0iOCIgeT0iMTIiIHdpZHRoPSIzMiIgaGVpZ2h0PSI4IiByeD0iMiIgZmlsbD0iI0ZGMDAwMCIgc3Ryb2tlPSIjQjMwMDAwIiBzdHJva2Utd2lkdGg9IjEuNSIvPgogIDxyZWN0IHg9IjgiIHk9IjIyIiB3aWR0aD0iMzIiIGhlaWdodD0iOCIgcng9IjIiIGZpbGw9IiNGRjAwMDAiIHN0cm9rZT0iI0IzMDAwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8cmVjdCB4PSI4IiB5PSIzMiIgd2lkdGg9IjMyIiBoZWlnaHQ9IjgiIHJ4PSIyIiBmaWxsPSIjRkYwMDAwIiBzdHJva2U9IiNCMzAwMDAiIHN0cm9rZS13aWR0aD0iMS41Ii8+CiAgCiAgPCEtLSBJbmRpY2Fkb3JlcyBkZWwgc2Vydmlkb3IgLS0+CiAgPGNpcmNsZSBjeD0iMTIiIGN5PSIxNiIgcj0iMS41IiBmaWxsPSIjMDBGRjAwIi8+CiAgPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMS41IiBmaWxsPSIjMDBGRjAwIi8+CiAgPGNpcmNsZSBjeD0iMTIiIGN5PSIyNiIgcj0iMS41IiBmaWxsPSIjMDBGRjAwIi8+CiAgPGNpcmNsZSBjeD0iMTYiIGN5PSIyNiIgcj0iMS41IiBmaWxsPSIjMDBGRjAwIi8+CiAgPGNpcmNsZSBjeD0iMTIiIGN5PSIzNiIgcj0iMS41IiBmaWxsPSIjMDBGRjAwIi8+CiAgPGNpcmNsZSBjeD0iMTYiIGN5PSIzNiIgcj0iMS41IiBmaWxsPSIjMDBGRjAwIi8+CiAgCiAgPCEtLSBMb2dvIFlvdVR1YmUgZW4gZWwgc2Vydmlkb3IgLS0+CiAgPHBhdGggZD0iTSAyOCAxNSBMIDI4IDE3IEwgMzQgMTYgWiIgZmlsbD0id2hpdGUiLz4KICA8cGF0aCBkPSJNIDI4IDI1IEwgMjggMjcgTCAzNCAyNiBaIiBmaWxsPSJ3aGl0ZSIvPgogIDxwYXRoIGQ9Ik0gMjggMzUgTCAyOCAzNyBMIDM0IDM2IFoiIGZpbGw9IndoaXRlIi8+Cjwvc3ZnPgo=",
-            mimeType="image/svg+xml",
-            sizes=["48x48"])
+import base64
+from pathlib import Path
 
-    ]
-)
+
+# Load the icon file and convert to data URI
+icon_path = Path(
+    "/workspaces/youtube-mcp-with-fastmcp/assets/icons/youtube.png")
+icon_data = base64.standard_b64encode(icon_path.read_bytes()).decode()
+icon_data_uri = f"data:image/png;base64,{icon_data}"
+
+icon_data = Icon(src=icon_data_uri, mimeType="image/png", sizes=["64x64"])
+
+mcp = FastMCP(name="YouTube MCP Server",
+              instructions="A FastMCP server that provides YouTube video information.",    icons=[icon_data])
 
 # TODO: Crear modulos para incluir las tools, prompt y demás en otros archivos y que sea más ordenado
 
 # YouTube API configuration
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
 
+# Inicializar el servicio de YouTube
+try:
+    youtube_service = YouTubeService()
+except ValueError as e:
+    youtube_service = None
+    print(f"Advertencia: {e}")
+
+
+# Icon for the tool
+icon_path = Path(
+    "/workspaces/youtube-mcp-with-fastmcp/assets/icons/youtube-videos.png")
+icon_data = icon_path.read_bytes()
+icon_data_uri = f"data:image/png;base64,{base64.b64encode(icon_data).decode()}"
+icon_data = Icon(src=icon_data_uri, mimeType="image/png", sizes=["64x64"])
+
 
 @mcp.tool(
-    icons=[Icon(
-        src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDgiIGhlaWdodD0iNDgiIHZpZXdCb3g9IjAgMCA0OCA0OCIgZmlsbD0ibm9uZSIgcHJlc2VydmVBc3BlY3RSYXRpbz0ieE1pZFlNaWQgbWVldCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8IS0tIEx1cGEgLS0+CiAgPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMTIiIGZpbGw9IiNGRjAwMDAiIHN0cm9rZT0iI0IzMDAwMCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGxpbmUgeDE9IjI5IiB5MT0iMjkiIHgyPSI0MCIgeTI9IjQwIiBzdHJva2U9IiNCMzAwMDAiIHN0cm9rZS13aWR0aD0iMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgCiAgPCEtLSBQbGF5IGJ1dHRvbiBkZW50cm8gZGUgbGEgbHVwYSAtLT4KICA8Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSI4IiBmaWxsPSJ3aGl0ZSIvPgogIDxwYXRoIGQ9Ik0gMTcgMTYgTCAxNyAyNCBMIDI1IDIwIFoiIGZpbGw9IiNGRjAwMDAiLz4KICAKICA8IS0tIERldGFsbGVzIGRlIGLDunNxdWVkYSAtLT4KICA8Y2lyY2xlIGN4PSI0MCIgY3k9IjQwIiByPSIyIiBmaWxsPSIjQjMwMDAwIi8+Cjwvc3ZnPgo=",
-        mimeType="image/svg+xml",
-        sizes=["48x48"])],
+    icons=[icon_data],
 )
 def search_videos(topic: str, max_results: int = 5) -> dict:
     """Fetches videos related to the given topic from YouTube.
@@ -38,50 +54,17 @@ def search_videos(topic: str, max_results: int = 5) -> dict:
     Returns:
         dict: A dictionary containing video information such as title, description, and URL.
     """
-    if not YOUTUBE_API_KEY:
+    if not youtube_service:
         return {
             "error": "YOUTUBE_API_KEY not set. Please set the environment variable.",
             "instructions": "Get your API key from https://console.cloud.google.com/apis/credentials"
         }
 
-    try:
-        # Build YouTube API client
-        youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
-
-        # Search for videos
-        search_response = youtube.search().list(
-            q=topic,
-            part='id,snippet',
-            maxResults=max_results,
-            type='video',
-            order='relevance'
-        ).execute()
-
-        # Parse results
-        videos = []
-        for item in search_response.get('items', []):
-            video_id = item['id']['videoId']
-            video = {
-                'title': item['snippet']['title'],
-                'description': item['snippet']['description'],
-                'url': f'https://www.youtube.com/watch?v={video_id}',
-                'thumbnail': item['snippet']['thumbnails']['default']['url'],
-                'channel': item['snippet']['channelTitle'],
-                'published_at': item['snippet']['publishedAt']
-            }
-            videos.append(video)
-
-        return {
-            'query': topic,
-            'total_results': len(videos),
-            'videos': videos
-        }
-
-    except Exception as e:
-        return {
-            'error': str(e),
-            'query': topic
-        }
+    return youtube_service.search_videos(
+        query=topic,
+        max_results=max_results,
+        order='relevance'
+    )
 
 
 # FIXME: No está mostrando diferentes opciones de idioma a la hora de generar el prompt
@@ -99,10 +82,15 @@ if __name__ == "__main__":
     mcp.run(transport="http", port=8000)
 
 
-@mcp.tool(icons=[Icon(
-    src="https://cdn.jsdelivr.net/gh/0gis0/my-assets/icons/heart.svg",
-    mimeType="image/svg+xml",
-    sizes=["48x48"])])
+# Icon for the tool
+icon_path = Path(
+    "/workspaces/youtube-mcp-with-fastmcp/assets/icons/youtube-title.png")
+icon_data = icon_path.read_bytes()
+icon_data_uri = f"data:image/png;base64,{base64.b64encode(icon_data).decode()}"
+icon_data = Icon(src=icon_data_uri, mimeType="image/png", sizes=["64x64"])
+
+
+@mcp.tool(icons=[icon_data])
 async def generate_youtube_title(ctx: Context, topic: str) -> str:
     """Generates a catchy YouTube video title based on the given topic.
 
@@ -119,4 +107,80 @@ async def generate_youtube_title(ctx: Context, topic: str) -> str:
                               )
     return result.text or ""
 
-# TODO: Ejemplo de elicitation
+
+@dataclass
+class YouTubeChannelInfo:
+    include_latest_videos: bool = True
+
+
+# Icon for the tool
+icon_path = Path(
+    "/workspaces/youtube-mcp-with-fastmcp/assets/icons/youtube-channel.png")
+icon_data = icon_path.read_bytes()
+icon_data_uri = f"data:image/png;base64,{base64.b64encode(icon_data).decode()}"
+icon_data = Icon(src=icon_data_uri, mimeType="image/png", sizes=["64x64"])
+
+
+@mcp.tool(icons=[icon_data])
+async def search_youtube_channel(ctx: Context, channel_name: str) -> dict:
+    """Searches for a YouTube channel by name and retrieves its details.
+
+    Args:
+        channel_name (str): The name of the YouTube channel to search for.
+    Returns:
+        dict: A dictionary containing channel information such as title, description, and URL.
+    """
+    result = await ctx.elicit(
+        message="Por favor, proporciona el nombre del canal de YouTube que deseas buscar.",
+        response_type=YouTubeChannelInfo
+    )
+
+    if result.action == "accept":
+        channel = result.data
+    elif result.action == "decline":
+        return "Information not provided"
+    else:  # cancel
+        return "Operation cancelled"
+
+    if not youtube_service:
+        return {
+            "error": "YOUTUBE_API_KEY not set. Please set the environment variable.",
+            "instructions": "Get your API key from https://console.cloud.google.com/apis/credentials"
+        }
+
+    # Buscar el canal
+    search_result = youtube_service.search_channels(
+        query=channel_name, max_results=1)
+
+    if not search_result.get('success') or not search_result.get('channels'):
+        return {"error": "Channel not found"}
+
+    channel_data = search_result['channels'][0]
+    channel_id = channel_data['channel_id']
+
+    # Obtener detalles completos del canal
+    channel_details = youtube_service.get_channel_details(
+        channel_id, include_statistics=True)
+
+    if not channel_details.get('success'):
+        return channel_details
+
+    channel_info = {
+        'title': channel_details['title'],
+        'description': channel_details['description'],
+        'url': channel_details['url'],
+        'thumbnail': channel_details['thumbnail'],
+        'subscriber_count': channel_details.get('subscriber_count'),
+        'video_count': channel_details.get('video_count'),
+        'view_count': channel_details.get('view_count')
+    }
+
+    if channel.include_latest_videos:
+        # Obtener los últimos vídeos del canal
+        videos_result = youtube_service.get_channel_videos(
+            channel_id, max_results=5)
+
+        if videos_result.get('success'):
+            channel_info['latest_videos'] = videos_result['videos']
+
+    return channel_info
