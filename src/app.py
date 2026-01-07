@@ -10,8 +10,8 @@ from pathlib import Path
 
 
 # Load the icon file and convert to data URI
-icon_path = Path(
-    "/workspaces/youtube-mcp-with-fastmcp/assets/icons/youtube.png")
+# Ruta relativa desde el archivo app.py
+icon_path = Path(__file__).parent.parent / "assets" / "icons" / "youtube.png"
 icon_data = base64.standard_b64encode(icon_path.read_bytes()).decode()
 icon_data_uri = f"data:image/png;base64,{icon_data}"
 
@@ -34,8 +34,8 @@ except ValueError as e:
 
 
 # Icon for the tool
-icon_path = Path(
-    "/workspaces/youtube-mcp-with-fastmcp/assets/icons/youtube-videos.png")
+icon_path = Path(__file__).parent.parent / "assets" / \
+    "icons" / "youtube-videos.png"
 icon_data = icon_path.read_bytes()
 icon_data_uri = f"data:image/png;base64,{base64.b64encode(icon_data).decode()}"
 icon_data = Icon(src=icon_data_uri, mimeType="image/png", sizes=["64x64"])
@@ -83,8 +83,8 @@ if __name__ == "__main__":
 
 
 # Icon for the tool
-icon_path = Path(
-    "/workspaces/youtube-mcp-with-fastmcp/assets/icons/youtube-title.png")
+icon_path = Path(__file__).parent.parent / "assets" / \
+    "icons" / "youtube-title.png"
 icon_data = icon_path.read_bytes()
 icon_data_uri = f"data:image/png;base64,{base64.b64encode(icon_data).decode()}"
 icon_data = Icon(src=icon_data_uri, mimeType="image/png", sizes=["64x64"])
@@ -114,8 +114,8 @@ class YouTubeChannelInfo:
 
 
 # Icon for the tool
-icon_path = Path(
-    "/workspaces/youtube-mcp-with-fastmcp/assets/icons/youtube-channel.png")
+icon_path = Path(__file__).parent.parent / "assets" / \
+    "icons" / "youtube-channel.png"
 icon_data = icon_path.read_bytes()
 icon_data_uri = f"data:image/png;base64,{base64.b64encode(icon_data).decode()}"
 icon_data = Icon(src=icon_data_uri, mimeType="image/png", sizes=["64x64"])
