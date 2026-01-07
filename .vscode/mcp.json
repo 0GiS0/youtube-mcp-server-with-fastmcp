@@ -8,6 +8,10 @@
             "url": "http://localhost:8000/mcp",
             "type": "http"
         }
+        // "fastcloud-mcp": {
+        //     "url": "https://complete-jade-unicorn.fastmcp.app/mcp",
+        //     "type": "http"
+        // }
     },
     "inputs": []
 }
