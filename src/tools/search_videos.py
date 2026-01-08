@@ -3,10 +3,7 @@ from pydantic import Field  # Para validación de campos en prompts
 from services import YouTubeService  # Nuestro servicio de YouTube
 import os  # Para leer variables de entorno
 from fastmcp import Context, FastMCP  # Framework MCP
-from mcp.types import Icon  # Para iconos
-import base64  # Para codificar imágenes
-from pathlib import Path  # Manejo de rutas
-import sys
+from utils.icons import get_icon_or_empty  # Utilidad para cargar iconos
 
 
 # 🔑 Configuración de la API de YouTube
@@ -30,25 +27,8 @@ search_mcp = FastMCP(
 )
 
 
-# Icon for the tool
-try:
-    # Obtener la ruta base del proyecto (workspace root)
-    project_root = Path(__file__).parent.parent.parent
-    icon_path = project_root / "assets" / "icons" / "youtube-videos.png"
-
-    if not icon_path.exists():
-        raise FileNotFoundError(f"Icon file not found at: {icon_path}")
-
-    icon_data = icon_path.read_bytes()
-    icon_data_uri = f"data:image/png;base64,{base64.b64encode(icon_data).decode()}"
-    icon_data = Icon(src=icon_data_uri, mimeType="image/png", sizes=["64x64"])
-    tool_icons = [icon_data]
-    print(f"✓ Icon loaded successfully from: {icon_path}")
-except (FileNotFoundError, OSError) as e:
-    print(f"⚠ Warning: Icon not found, using tool without icon: {e}")
-    print(
-        f"  Searched at: {icon_path if 'icon_path' in locals() else 'unknown'}")
-    tool_icons = []
+# 🎨 Cargamos el icono de la tool usando la utilidad
+tool_icons = get_icon_or_empty("youtube-videos.png")
 
 
 @search_mcp.tool(
