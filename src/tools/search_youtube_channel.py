@@ -7,6 +7,7 @@ from services import YouTubeService
 
 import base64
 from pathlib import Path
+import sys
 
 
 @dataclass
@@ -29,14 +30,28 @@ elicitation_mcp_demo = FastMCP(
 
 
 # Icon for the tool
-icon_path = Path(__file__).parent.parent.parent / "assets" / \
-    "icons" / "youtube-channel.png"
-icon_data = icon_path.read_bytes()
-icon_data_uri = f"data:image/png;base64,{base64.b64encode(icon_data).decode()}"
-icon_data = Icon(src=icon_data_uri, mimeType="image/png", sizes=["64x64"])
+try:
+    # Obtener la ruta base del proyecto (workspace root)
+    # Subir desde src/tools/ hasta la raíz del proyecto
+    project_root = Path(__file__).parent.parent.parent
+    icon_path = project_root / "assets" / "icons" / "youtube-channel.png"
+
+    if not icon_path.exists():
+        raise FileNotFoundError(f"Icon file not found at: {icon_path}")
+
+    icon_data = icon_path.read_bytes()
+    icon_data_uri = f"data:image/png;base64,{base64.b64encode(icon_data).decode()}"
+    icon_data = Icon(src=icon_data_uri, mimeType="image/png", sizes=["64x64"])
+    tool_icons = [icon_data]
+    print(f"✓ Icon loaded successfully from: {icon_path}")
+except (FileNotFoundError, OSError) as e:
+    print(f"⚠ Warning: Icon not found, using tool without icon: {e}")
+    print(
+        f"  Searched at: {icon_path if 'icon_path' in locals() else 'unknown'}")
+    tool_icons = []
 
 
-@elicitation_mcp_demo.tool(icons=[icon_data])
+@elicitation_mcp_demo.tool(icons=tool_icons)
 async def search_youtube_channel(ctx: Context, channel_name: str) -> dict:
     """Searches for a YouTube channel by name and retrieves its details.
 

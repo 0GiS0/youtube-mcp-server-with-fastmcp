@@ -5,6 +5,7 @@ description = ""
 authors = ["Gisela Torres"]
 readme = "README.md"
 packages = [{include = "src"}]
+include = ["assets/**/*"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
