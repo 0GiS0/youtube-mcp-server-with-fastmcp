@@ -53,7 +53,7 @@ def load_icon(icon_filename: str) -> List[Icon]:
         icon_data_uri = f"data:image/png;base64,{icon_base64}"
         icon = Icon(src=icon_data_uri, mimeType="image/png", sizes=["64x64"])
 
-        print(f"✓ Icon loaded: {icon_path}")
+        print(f"🖼️ Icon loaded: {icon_path}")
         return [icon]
 
     except (FileNotFoundError, OSError) as e:

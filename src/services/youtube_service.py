@@ -1,5 +1,4 @@
-"""
-🎥 YouTube API Service
+"""🎥 YouTube API Service
 
 Este módulo centraliza toda la configuración y las llamadas a la API de Google YouTube.
 Proporciona una capa de abstracción para interactuar con la API de YouTube de manera
@@ -17,6 +16,7 @@ from typing import Optional, Dict, List, Any
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from dataclasses import dataclass
+from dotenv import load_dotenv
 
 
 @dataclass
@@ -38,6 +38,9 @@ class YouTubeConfig:
         Esto es útil para no hardcodear la API key en el código.
         La API key se lee de la variable de entorno YOUTUBE_API_KEY.
         """
+        # Aseguramos que el .env esté cargado incluso si la app
+        # no llamó a load_dotenv() antes de importar este módulo.
+        load_dotenv()
         api_key = os.getenv("YOUTUBE_API_KEY", "")
         if not api_key:
             raise ValueError(
@@ -293,6 +296,78 @@ class YouTubeService:
                 'query': query,
                 'total_results': len(channels),
                 'channels': channels
+            }
+
+        except HttpError as e:
+            return {
+                'success': False,
+                'error': f'Error de API de YouTube: {e.resp.status} - {e.content.decode()}'
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f'Error inesperado: {str(e)}'
+            }
+
+    def get_channel_latest_videos(
+        self,
+        channel_id: str,
+        max_results: int = 5
+    ) -> Dict[str, Any]:
+        """📹 Obtiene los últimos videos publicados de un canal concreto.
+
+        Usa la operación ``search().list`` filtrando por ``channelId`` y
+        ordenando por fecha descendente para traer los videos más recientes.
+
+        Args:
+            channel_id: 🆔 ID del canal de YouTube.
+            max_results: 🔢 Número máximo de videos a retornar (1-50).
+
+        Returns:
+            dict con la forma:
+            {
+                'success': bool,
+                'channel_id': str,
+                'total_results': int,
+                'videos': [
+                    {
+                        'video_id': str,
+                        'title': str,
+                        'description': str,
+                        'url': str,
+                        'thumbnail': str,
+                        'published_at': str
+                    }
+                ]
+            }
+        """
+        try:
+            search_response = self.client.search().list(
+                channelId=channel_id,
+                part='id,snippet',
+                maxResults=min(max_results, 50),
+                order='date',  # 🗓️ Lo más reciente primero
+                type='video'
+            ).execute()
+
+            videos: List[Dict[str, Any]] = []
+            for item in search_response.get('items', []):
+                video_id = item['id']['videoId']
+                snippet = item['snippet']
+                videos.append({
+                    'video_id': video_id,
+                    'title': snippet['title'],
+                    'description': snippet['description'],
+                    'url': f'https://www.youtube.com/watch?v={video_id}',
+                    'thumbnail': snippet['thumbnails']['default']['url'],
+                    'published_at': snippet['publishedAt']
+                })
+
+            return {
+                'success': True,
+                'channel_id': channel_id,
+                'total_results': len(videos),
+                'videos': videos
             }
 
         except HttpError as e:

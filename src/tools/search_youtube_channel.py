@@ -1,10 +1,18 @@
 # 📦 Importaciones
 import os
 from fastmcp import FastMCP, Context  # Framework MCP
+from enum import Enum  # Para crear opciones con emojis
 
 from dataclasses import dataclass  # Para crear clases de datos simples
 from services import YouTubeService  # Nuestro servicio de YouTube
 from utils.icons import load_icon  # Utilidad para cargar iconos
+
+
+# 🎬 Enum para las opciones de inclusión de videos con emojis
+class IncludeVideosOption(str, Enum):
+    """Opciones para incluir los últimos videos del canal"""
+    SI = "✅ Sí, incluir los últimos videos"
+    NO = "❌ No, solo información básica"
 
 
 # 📋 Clase de datos para la configuración del canal
@@ -16,7 +24,7 @@ class YouTubeChannelInfo:
     💡 Esta clase se usa con elicitation para preguntarle al usuario
     si quiere incluir los últimos videos del canal o solo la info básica.
     """
-    include_latest_videos: bool = True  # ¿Incluir los últimos videos? 📹
+    include_latest_videos: IncludeVideosOption = IncludeVideosOption.SI  # ¿Incluir los últimos videos? 📹
 
 
 # 🔑 Configuración de la API de YouTube
@@ -67,13 +75,19 @@ async def search_youtube_channel(ctx: Context, channel_name: str) -> dict:
     Returns:
         dict: 📦 Diccionario con información del canal:
         {
-            'title': str,              # 📌 Nombre del canal
-            'description': str,        # 📄 Descripción
-            'url': str,                # 🔗 URL del canal
-            'subscriber_count': str,   # 👥 Número de suscriptores
-            'video_count': str,        # 📹 Cantidad de videos
-            'view_count': str,         # 👀 Vistas totales
-            'latest_videos': [...]     # 🎬 Últimos videos (si se solicitó)
+            'query': str,
+            'total_results': int,
+            'channels': [
+                {
+                    'title': str,              # 📌 Nombre del canal
+                    'description': str,        # 📄 Descripción
+                    'url': str,                # 🔗 URL del canal
+                    'subscriber_count': str,   # 👥 Número de suscriptores
+                    'video_count': str,        # 📹 Cantidad de videos
+                    'view_count': str,         # 👀 Vistas totales
+                    'latest_videos': [...]     # 🎬 Últimos videos (si se solicitó)
+                }
+            ]
         }
 
     Ejemplo:
@@ -83,7 +97,7 @@ async def search_youtube_channel(ctx: Context, channel_name: str) -> dict:
     # 💬 Aquí ocurre la "elicitation" - pedimos info adicional al usuario
     # Le preguntamos si quiere incluir los últimos videos del canal
     result = await ctx.elicit(
-        message="Por favor, proporciona el nombre del canal de YouTube que deseas buscar.",
+        message="¿Puedes contestar a las siguientes preguntas?",
         response_type=YouTubeChannelInfo  # 📋 Tipo de dato que esperamos recibir
     )
 
@@ -91,6 +105,8 @@ async def search_youtube_channel(ctx: Context, channel_name: str) -> dict:
     if result.action == "accept":
         # ✅ Usuario aceptó y proporcionó la información
         channel = result.data
+        # 🎥 Verificamos si el usuario quiso incluir los últimos videos
+        include_videos = channel.include_latest_videos == IncludeVideosOption.SI
     elif result.action == "decline":
         # ❌ Usuario rechazó proporcionar la información
         return "Information not provided"
@@ -143,6 +159,24 @@ async def search_youtube_channel(ctx: Context, channel_name: str) -> dict:
             'view_count': channel_data.get('view_count', 0),
             'country': channel_data.get('country', 'N/A')  # 🌍 País del canal
         }
+
+        # 🎬 Si el usuario lo pidió, añadimos los últimos videos del canal
+        if include_videos:
+            latest_videos_result = youtube_service.get_channel_latest_videos(
+                channel_id=channel_data['channel_id'],
+                max_results=5
+            )
+
+            if latest_videos_result.get('success'):
+                channel_info['latest_videos'] = latest_videos_result['videos']
+            else:
+                # En caso de error, devolvemos la info básica del canal
+                # y una lista vacía de videos + mensaje de error opcional
+                channel_info['latest_videos'] = []
+                channel_info['latest_videos_error'] = latest_videos_result.get(
+                    'error', 'Error al obtener los últimos videos del canal'
+                )
+
         channels_info['channels'].append(channel_info)
 
     # 🎉 Retornamos toda la información de los canales encontrados
