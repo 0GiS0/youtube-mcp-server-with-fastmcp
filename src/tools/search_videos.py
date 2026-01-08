@@ -3,7 +3,7 @@ from pydantic import Field  # Para validación de campos en prompts
 from services import YouTubeService  # Nuestro servicio de YouTube
 import os  # Para leer variables de entorno
 from fastmcp import Context, FastMCP  # Framework MCP
-from utils.icons import get_icon_or_empty  # Utilidad para cargar iconos
+from utils.icons import load_icon  # Utilidad para cargar iconos
 
 
 # 🔑 Configuración de la API de YouTube
@@ -27,8 +27,8 @@ search_mcp = FastMCP(
 )
 
 
-# 🎨 Cargamos el icono de la tool usando la utilidad
-tool_icons = get_icon_or_empty("youtube-videos.png")
+# 🎨 Cargamos el icono de la tool
+tool_icons = load_icon("youtube-videos.png")
 
 
 @search_mcp.tool(

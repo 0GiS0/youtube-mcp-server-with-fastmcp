@@ -4,7 +4,7 @@ from fastmcp import FastMCP, Context  # Framework MCP
 
 from dataclasses import dataclass  # Para crear clases de datos simples
 from services import YouTubeService  # Nuestro servicio de YouTube
-from utils.icons import get_icon_or_empty  # Utilidad para cargar iconos
+from utils.icons import load_icon  # Utilidad para cargar iconos
 
 
 # 📋 Clase de datos para la configuración del canal
@@ -36,8 +36,8 @@ elicitation_mcp_demo = FastMCP(
     "Tool that allow us to search a youtube channel")
 
 
-# 🎨 Cargamos el icono de la tool usando la utilidad
-tool_icons = get_icon_or_empty("youtube-channel.png")
+# 🎨 Cargamos el icono de la tool
+tool_icons = load_icon("youtube-channel.png")
 
 
 @elicitation_mcp_demo.tool(icons=tool_icons)

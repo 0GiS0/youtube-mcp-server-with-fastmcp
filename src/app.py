@@ -1,6 +1,6 @@
 # 📦 Importaciones principales del proyecto
 # FastMCP: Framework para crear servidores MCP (Model Context Protocol)
-from utils.icons import load_icons
+from utils.icons import load_icon
 from tools.search_youtube_channel import elicitation_mcp_demo
 from tools.generate_title import sampling_mcp_demo
 from tools.search_videos import search_mcp
@@ -11,14 +11,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # 🔧 Importar las herramientas (tools) que hemos creado
-# Cada tool representa una funcionalidad específica del servidor
 
 # 🎨 Importar utilidades para manejo de iconos
 
 
 # 🎨 Configuración del icono del servidor
-# Usamos la utilidad load_icons para cargar el icono simplificadamente
-server_icons = load_icons("youtube.png")
+server_icons = load_icon("youtube.png")
 
 # 🚀 Inicializamos el servidor MCP principal
 # Este es el punto de entrada de nuestra aplicación
