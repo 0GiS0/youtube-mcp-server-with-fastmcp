@@ -1,9 +1,15 @@
 """
-YouTube API Service
+🎥 YouTube API Service
 
 Este módulo centraliza toda la configuración y las llamadas a la API de Google YouTube.
 Proporciona una capa de abstracción para interactuar con la API de YouTube de manera
 consistente y manejando errores apropiadamente.
+
+📚 Conceptos clave:
+- Configuración centralizada de la API key
+- Manejo de errores robusto con try/except
+- Métodos reutilizables para diferentes operaciones de YouTube
+- Uso de dataclasses para configuración tipada
 """
 
 import os
@@ -15,14 +21,23 @@ from dataclasses import dataclass
 
 @dataclass
 class YouTubeConfig:
-    """Configuración para el servicio de YouTube API."""
-    api_key: str
+    """🔧 Configuración para el servicio de YouTube API.
+
+    Usa dataclass para crear una clase simple que almacena la configuración.
+    Es como un "contenedor" de datos con valores por defecto.
+    """
+    api_key: str  # 🔑 La clave API obtenida de Google Cloud Console
+    # 📺 Nombre del servicio (siempre 'youtube')
     api_service_name: str = "youtube"
-    api_version: str = "v3"
+    api_version: str = "v3"  # 📌 Versión de la API (v3 es la actual)
 
     @classmethod
     def from_env(cls) -> 'YouTubeConfig':
-        """Crea una configuración desde variables de entorno."""
+        """🌍 Crea una configuración desde variables de entorno.
+
+        Esto es útil para no hardcodear la API key en el código.
+        La API key se lee de la variable de entorno YOUTUBE_API_KEY.
+        """
         api_key = os.getenv("YOUTUBE_API_KEY", "")
         if not api_key:
             raise ValueError(
@@ -34,21 +49,38 @@ class YouTubeConfig:
 
 
 class YouTubeService:
-    """Servicio para interactuar con la API de YouTube."""
+    """🎬 Servicio para interactuar con la API de YouTube.
+
+    Esta clase encapsula todas las operaciones con la API de YouTube.
+    Proporciona métodos simples para buscar videos, canales, obtener detalles, etc.
+    """
 
     def __init__(self, config: Optional[YouTubeConfig] = None):
-        """
-        Inicializa el servicio de YouTube.
+        """🚀 Inicializa el servicio de YouTube.
 
         Args:
             config: Configuración del servicio. Si es None, se carga desde variables de entorno.
+
+        Ejemplo:
+            # Con configuración automática desde .env
+            service = YouTubeService()
+
+            # Con configuración manual
+            config = YouTubeConfig(api_key="tu_api_key_aqui")
+            service = YouTubeService(config)
         """
         self.config = config or YouTubeConfig.from_env()
         self._client = None
 
     @property
     def client(self):
-        """Cliente de la API de YouTube (lazy loading)."""
+        """🔌 Cliente de la API de YouTube (lazy loading).
+
+        Lazy loading significa que el cliente solo se crea cuando se usa por primera vez.
+        Esto ahorra recursos si creamos el servicio pero no lo usamos inmediatamente.
+
+        💡 Patrón de diseño: Singleton + Lazy Initialization
+        """
         if self._client is None:
             self._client = build(
                 self.config.api_service_name,
@@ -65,55 +97,81 @@ class YouTubeService:
         region_code: Optional[str] = None,
         language: Optional[str] = None
     ) -> Dict[str, Any]:
-        """
-        Busca vídeos en YouTube basándose en una consulta.
+        """🔍 Busca vídeos en YouTube basándose en una consulta.
 
         Args:
-            query: Término de búsqueda.
-            max_results: Número máximo de resultados (1-50).
-            order: Orden de los resultados (relevance, date, rating, viewCount, title).
-            region_code: Código de región ISO 3166-1 alpha-2 (ej: 'ES', 'US').
-            language: Código de idioma ISO 639-1 (ej: 'es', 'en').
+            query: 🔎 Término de búsqueda (ej: "Python tutorial")
+            max_results: 🔢 Número máximo de resultados (1-50, por defecto 5)
+            order: 📊 Orden de los resultados:
+                - 'relevance': Por relevancia (default) ⭐
+                - 'date': Más recientes primero 📅
+                - 'rating': Mejor valorados ⭐⭐⭐⭐⭐
+                - 'viewCount': Más vistos primero 👀
+                - 'title': Orden alfabético 🔤
+            region_code: 🌍 Código de región ISO 3166-1 alpha-2 (ej: 'ES', 'US', 'MX')
+            language: 🗣️ Código de idioma ISO 639-1 (ej: 'es', 'en', 'fr')
 
         Returns:
-            Diccionario con los resultados de la búsqueda.
-
-        Raises:
-            HttpError: Si hay un error en la llamada a la API.
-        """
-        try:
-            search_params = {
-                'q': query,
-                'part': 'id,snippet',
-                'maxResults': min(max_results, 50),  # API limit
-                'type': 'video',
-                'order': order
+            📦 Diccionario con los resultados de la búsqueda:
+            {
+                'success': bool,      # ✅ True si la búsqueda fue exitosa
+                'query': str,         # 🔎 Término buscado
+                'total_results': int, # 🔢 Cantidad de videos encontrados
+                'videos': [...]       # 📹 Lista de videos con sus datos
             }
 
+        Raises:
+            HttpError: ❌ Si hay un error en la llamada a la API de YouTube
+
+        Ejemplo:
+            >>> service = YouTubeService()
+            >>> results = service.search_videos("Python", max_results=3)
+            >>> print(f"Encontrados: {results['total_results']} videos")
+        """
+        try:
+            # 🎯 Configuramos los parámetros de búsqueda
+            search_params = {
+                'q': query,  # 🔎 Query de búsqueda
+                'part': 'id,snippet',  # 📦 Pedimos ID y datos básicos (snippet)
+                # 🛡️ Limitamos a 50 (límite de la API)
+                'maxResults': min(max_results, 50),
+                # � Solo buscamos videos (no canales ni playlists)
+                'type': 'video',
+                'order': order  # 📊 Orden de resultados
+            }
+
+            # 🌍 Agregar filtro de región si se especificó
             if region_code:
                 search_params['regionCode'] = region_code
 
+            # 🗣️ Agregar preferencia de idioma si se especificó
             if language:
                 search_params['relevanceLanguage'] = language
 
+            # 🚀 Ejecutamos la búsqueda en la API de YouTube
             search_response = self.client.search().list(**search_params).execute()
 
+            # 📝 Procesamos los resultados y los convertimos a un formato más amigable
             videos = []
             for item in search_response.get('items', []):
                 video_id = item['id']['videoId']
                 video = {
-                    'video_id': video_id,
-                    'title': item['snippet']['title'],
+                    'video_id': video_id,  # 🆔 ID único del video
+                    'title': item['snippet']['title'],  # 📌 Título del video
+                    # 📄 Descripción
                     'description': item['snippet']['description'],
+                    # 🔗 URL completa
                     'url': f'https://www.youtube.com/watch?v={video_id}',
+                    # 🖼️ Miniatura normal
                     'thumbnail': item['snippet']['thumbnails']['default']['url'],
-                    'thumbnail_high': item['snippet']['thumbnails'].get('high', {}).get('url'),
-                    'channel_id': item['snippet']['channelId'],
+                    # 👤 Nombre del canal
                     'channel_title': item['snippet']['channelTitle'],
+                    # 📅 Fecha de publicación
                     'published_at': item['snippet']['publishedAt']
                 }
                 videos.append(video)
 
+            # ✅ Retornamos los resultados en un formato estructurado
             return {
                 'success': True,
                 'query': query,
@@ -122,72 +180,18 @@ class YouTubeService:
             }
 
         except HttpError as e:
+            # ❌ Error específico de la API de YouTube (cuota excedida, credenciales inválidas, etc.)
             return {
                 'success': False,
                 'error': f'Error de API de YouTube: {e.resp.status} - {e.content.decode()}',
                 'query': query
             }
         except Exception as e:
+            # ⚠️ Cualquier otro error inesperado (red, timeout, etc.)
             return {
                 'success': False,
                 'error': f'Error inesperado: {str(e)}',
                 'query': query
-            }
-
-    def get_video_details(self, video_id: str) -> Dict[str, Any]:
-        """
-        Obtiene información detallada de un vídeo específico.
-
-        Args:
-            video_id: ID del vídeo de YouTube.
-
-        Returns:
-            Diccionario con la información del vídeo.
-        """
-        try:
-            video_response = self.client.videos().list(
-                part='snippet,contentDetails,statistics',
-                id=video_id
-            ).execute()
-
-            items = video_response.get('items', [])
-            if not items:
-                return {
-                    'success': False,
-                    'error': 'Vídeo no encontrado'
-                }
-
-            item = items[0]
-            snippet = item['snippet']
-            statistics = item.get('statistics', {})
-            content_details = item.get('contentDetails', {})
-
-            return {
-                'success': True,
-                'video_id': video_id,
-                'title': snippet['title'],
-                'description': snippet['description'],
-                'channel_id': snippet['channelId'],
-                'channel_title': snippet['channelTitle'],
-                'published_at': snippet['publishedAt'],
-                'duration': content_details.get('duration'),
-                'view_count': statistics.get('viewCount'),
-                'like_count': statistics.get('likeCount'),
-                'comment_count': statistics.get('commentCount'),
-                'tags': snippet.get('tags', []),
-                'category_id': snippet.get('categoryId'),
-                'url': f'https://www.youtube.com/watch?v={video_id}'
-            }
-
-        except HttpError as e:
-            return {
-                'success': False,
-                'error': f'Error de API de YouTube: {e.resp.status} - {e.content.decode()}'
-            }
-        except Exception as e:
-            return {
-                'success': False,
-                'error': f'Error inesperado: {str(e)}'
             }
 
     def search_channels(
@@ -195,17 +199,46 @@ class YouTubeService:
         query: str,
         max_results: int = 5
     ) -> Dict[str, Any]:
-        """
-        Busca canales en YouTube.
+        """📺 Busca canales en YouTube con información detallada.
+
+        Combina dos llamadas a la API:
+        1. search().list() - Para buscar canales por texto
+        2. channels().list() - Para obtener estadísticas y detalles completos
 
         Args:
-            query: Término de búsqueda.
-            max_results: Número máximo de resultados.
+            query: 🔎 Término de búsqueda (ej: "returngis")
+            max_results: 🔢 Número máximo de canales a retornar (default: 5)
 
         Returns:
-            Diccionario con los canales encontrados.
+            📦 Diccionario con los canales encontrados e información detallada:
+            {
+                'success': bool,
+                'query': str,
+                'total_results': int,
+                'channels': [
+                    {
+                        'channel_id': str,
+                        'title': str,
+                        'description': str,
+                        'url': str,
+                        'thumbnail': str,
+                        'published_at': str,
+                        'subscriber_count': int,  # 👥 Número de suscriptores
+                        'video_count': int,       # 📹 Total de videos
+                        'view_count': int,        # 👀 Vistas totales
+                        'country': str            # 🌍 País del canal
+                    }
+                ]
+            }
+
+        Ejemplo:
+            >>> service = YouTubeService()
+            >>> canales = service.search_channels("Python", max_results=3)
+            >>> print(f"Canal: {canales['channels'][0]['title']}")
+            >>> print(f"Suscriptores: {canales['channels'][0]['subscriber_count']}")
         """
         try:
+            # 🔍 Paso 1: Buscar canales por texto (obtiene IDs y snippet básico)
             search_response = self.client.search().list(
                 q=query,
                 part='id,snippet',
@@ -213,16 +246,45 @@ class YouTubeService:
                 type='channel'
             ).execute()
 
+            # 📋 Extraer los IDs de los canales encontrados
+            channel_ids = [item['id']['channelId']
+                           for item in search_response.get('items', [])]
+
+            if not channel_ids:
+                return {
+                    'success': True,
+                    'query': query,
+                    'total_results': 0,
+                    'channels': []
+                }
+
+            # 📊 Paso 2: Obtener información detallada de los canales
+            channels_response = self.client.channels().list(
+                part='snippet,statistics,brandingSettings',
+                id=','.join(channel_ids)
+            ).execute()
+
+            # 🎯 Procesar y combinar la información
             channels = []
-            for item in search_response.get('items', []):
-                channel_id = item['id']['channelId']
+            for item in channels_response.get('items', []):
+                channel_id = item['id']
+                snippet = item['snippet']
+                statistics = item.get('statistics', {})
+                branding = item.get('brandingSettings', {}).get('channel', {})
+
                 channel = {
                     'channel_id': channel_id,
-                    'title': item['snippet']['title'],
-                    'description': item['snippet']['description'],
+                    'title': snippet['title'],
+                    'description': snippet['description'],
                     'url': f'https://www.youtube.com/channel/{channel_id}',
-                    'thumbnail': item['snippet']['thumbnails']['default']['url'],
-                    'published_at': item['snippet']['publishedAt']
+                    'thumbnail': snippet['thumbnails']['default']['url'],
+                    'published_at': snippet['publishedAt'],
+                    # 📊 Estadísticas detalladas
+                    'subscriber_count': int(statistics.get('subscriberCount', 0)),
+                    'video_count': int(statistics.get('videoCount', 0)),
+                    'view_count': int(statistics.get('viewCount', 0)),
+                    # 🎨 Branding info
+                    'country': branding.get('country', 'N/A')
                 }
                 channels.append(channel)
 
@@ -234,207 +296,6 @@ class YouTubeService:
             }
 
         except HttpError as e:
-            return {
-                'success': False,
-                'error': f'Error de API de YouTube: {e.resp.status} - {e.content.decode()}'
-            }
-        except Exception as e:
-            return {
-                'success': False,
-                'error': f'Error inesperado: {str(e)}'
-            }
-
-    def get_channel_details(
-        self,
-        channel_id: str,
-        include_statistics: bool = True
-    ) -> Dict[str, Any]:
-        """
-        Obtiene información detallada de un canal.
-
-        Args:
-            channel_id: ID del canal de YouTube.
-            include_statistics: Si se deben incluir estadísticas del canal.
-
-        Returns:
-            Diccionario con la información del canal.
-        """
-        try:
-            parts = ['snippet', 'contentDetails']
-            if include_statistics:
-                parts.append('statistics')
-
-            channel_response = self.client.channels().list(
-                part=','.join(parts),
-                id=channel_id
-            ).execute()
-
-            items = channel_response.get('items', [])
-            if not items:
-                return {
-                    'success': False,
-                    'error': 'Canal no encontrado'
-                }
-
-            item = items[0]
-            snippet = item['snippet']
-            statistics = item.get('statistics', {})
-            content_details = item.get('contentDetails', {})
-
-            result = {
-                'success': True,
-                'channel_id': channel_id,
-                'title': snippet['title'],
-                'description': snippet['description'],
-                'custom_url': snippet.get('customUrl'),
-                'published_at': snippet['publishedAt'],
-                'thumbnail': snippet['thumbnails']['default']['url'],
-                'url': f'https://www.youtube.com/channel/{channel_id}',
-                'uploads_playlist_id': content_details.get('relatedPlaylists', {}).get('uploads')
-            }
-
-            if include_statistics:
-                result.update({
-                    'subscriber_count': statistics.get('subscriberCount'),
-                    'video_count': statistics.get('videoCount'),
-                    'view_count': statistics.get('viewCount')
-                })
-
-            return result
-
-        except HttpError as e:
-            return {
-                'success': False,
-                'error': f'Error de API de YouTube: {e.resp.status} - {e.content.decode()}'
-            }
-        except Exception as e:
-            return {
-                'success': False,
-                'error': f'Error inesperado: {str(e)}'
-            }
-
-    def get_channel_videos(
-        self,
-        channel_id: str,
-        max_results: int = 5,
-        order: str = 'date'
-    ) -> Dict[str, Any]:
-        """
-        Obtiene los vídeos más recientes de un canal.
-
-        Args:
-            channel_id: ID del canal de YouTube.
-            max_results: Número máximo de vídeos a obtener.
-            order: Orden de los vídeos (date, rating, relevance, title, viewCount).
-
-        Returns:
-            Diccionario con los vídeos del canal.
-        """
-        try:
-            # Primero obtenemos el ID de la playlist de uploads
-            channel_details = self.get_channel_details(
-                channel_id, include_statistics=False)
-
-            if not channel_details.get('success'):
-                return channel_details
-
-            uploads_playlist_id = channel_details.get('uploads_playlist_id')
-            if not uploads_playlist_id:
-                return {
-                    'success': False,
-                    'error': 'No se pudo obtener la playlist de vídeos del canal'
-                }
-
-            # Obtenemos los vídeos de la playlist
-            playlist_response = self.client.playlistItems().list(
-                playlistId=uploads_playlist_id,
-                part='snippet,contentDetails',
-                maxResults=max_results
-            ).execute()
-
-            videos = []
-            for item in playlist_response.get('items', []):
-                video_id = item['contentDetails']['videoId']
-                video = {
-                    'video_id': video_id,
-                    'title': item['snippet']['title'],
-                    'description': item['snippet']['description'],
-                    'url': f'https://www.youtube.com/watch?v={video_id}',
-                    'thumbnail': item['snippet']['thumbnails']['default']['url'],
-                    'published_at': item['snippet']['publishedAt']
-                }
-                videos.append(video)
-
-            return {
-                'success': True,
-                'channel_id': channel_id,
-                'total_results': len(videos),
-                'videos': videos
-            }
-
-        except HttpError as e:
-            return {
-                'success': False,
-                'error': f'Error de API de YouTube: {e.resp.status} - {e.content.decode()}'
-            }
-        except Exception as e:
-            return {
-                'success': False,
-                'error': f'Error inesperado: {str(e)}'
-            }
-
-    def get_video_comments(
-        self,
-        video_id: str,
-        max_results: int = 20,
-        order: str = 'relevance'
-    ) -> Dict[str, Any]:
-        """
-        Obtiene los comentarios de un vídeo.
-
-        Args:
-            video_id: ID del vídeo de YouTube.
-            max_results: Número máximo de comentarios.
-            order: Orden de los comentarios (relevance, time).
-
-        Returns:
-            Diccionario con los comentarios del vídeo.
-        """
-        try:
-            comments_response = self.client.commentThreads().list(
-                part='snippet',
-                videoId=video_id,
-                maxResults=max_results,
-                order=order,
-                textFormat='plainText'
-            ).execute()
-
-            comments = []
-            for item in comments_response.get('items', []):
-                top_comment = item['snippet']['topLevelComment']['snippet']
-                comment = {
-                    'author': top_comment['authorDisplayName'],
-                    'text': top_comment['textDisplay'],
-                    'like_count': top_comment['likeCount'],
-                    'published_at': top_comment['publishedAt'],
-                    'updated_at': top_comment['updatedAt']
-                }
-                comments.append(comment)
-
-            return {
-                'success': True,
-                'video_id': video_id,
-                'total_results': len(comments),
-                'comments': comments
-            }
-
-        except HttpError as e:
-            # Los comentarios pueden estar deshabilitados
-            if e.resp.status == 403:
-                return {
-                    'success': False,
-                    'error': 'Los comentarios están deshabilitados para este vídeo'
-                }
             return {
                 'success': False,
                 'error': f'Error de API de YouTube: {e.resp.status} - {e.content.decode()}'

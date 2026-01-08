@@ -1,23 +1,32 @@
+# 📦 Importaciones
 import os
-from fastmcp import FastMCP, Context
-from mcp.types import Icon
+from fastmcp import FastMCP, Context  # Framework MCP
+from mcp.types import Icon  # Para iconos
 
-from dataclasses import dataclass
-from services import YouTubeService
+from dataclasses import dataclass  # Para crear clases de datos simples
+from services import YouTubeService  # Nuestro servicio de YouTube
 
-import base64
-from pathlib import Path
+import base64  # Para codificar imágenes
+from pathlib import Path  # Manejo de rutas
 import sys
 
 
+# 📋 Clase de datos para la configuración del canal
+# Esta clase se usa en el proceso de "elicitation" (pedir info al usuario)
 @dataclass
 class YouTubeChannelInfo:
-    include_latest_videos: bool = True
+    """🎬 Configuración de qué información del canal queremos.
+
+    💡 Esta clase se usa con elicitation para preguntarle al usuario
+    si quiere incluir los últimos videos del canal o solo la info básica.
+    """
+    include_latest_videos: bool = True  # ¿Incluir los últimos videos? 📹
 
 
-# YouTube API configuration
+# 🔑 Configuración de la API de YouTube
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
-# Inicializar el servicio de YouTube
+
+# 🚀 Inicializar el servicio de YouTube
 try:
     youtube_service = YouTubeService()
 except ValueError as e:
@@ -25,6 +34,8 @@ except ValueError as e:
     print(f"Advertencia: {e}")
 
 
+# 💬 Creamos una instancia de FastMCP para demostrar "elicitation"
+# Elicitation = pedir información adicional al usuario de forma interactiva
 elicitation_mcp_demo = FastMCP(
     "Tool that allow us to search a youtube channel")
 
@@ -53,64 +64,108 @@ except (FileNotFoundError, OSError) as e:
 
 @elicitation_mcp_demo.tool(icons=tool_icons)
 async def search_youtube_channel(ctx: Context, channel_name: str) -> dict:
-    """Searches for a YouTube channel by name and retrieves its details.
+    """📺 Busca un canal de YouTube por nombre y obtiene sus detalles.
+
+    💡 ¿Qué es "elicitation"?
+    Elicitation permite que tu tool PREGUNTE información adicional al usuario
+    de forma interactiva, DESPUÉS de ser invocada. Es como un "wizard" o diálogo.
+
+    🔄 Flujo de esta tool:
+    1. Usuario invoca la tool con el nombre del canal 📥
+    2. La tool usa elicitation para preguntar: "¿Quieres los últimos videos?" 💬
+    3. Usuario responde (accept/decline/cancel) 👤
+    4. Basándose en la respuesta, obtenemos info básica o completa 📊
+    5. Retornamos los resultados 📤
+
+    Esto es útil para:
+    - Evitar parámetros complicados en la firma de la función 🎯
+    - Permitir flujos dinámicos basados en contexto 🌊
+    - Mejorar la experiencia del usuario con diálogos 💬
 
     Args:
-        channel_name (str): The name of the YouTube channel to search for.
+        channel_name (str): 👤 El nombre del canal de YouTube a buscar
+                            (ej: "CódigoFacilito", "freeCodeCamp")
+
     Returns:
-        dict: A dictionary containing channel information such as title, description, and URL.
+        dict: 📦 Diccionario con información del canal:
+        {
+            'title': str,              # 📌 Nombre del canal
+            'description': str,        # 📄 Descripción
+            'url': str,                # 🔗 URL del canal
+            'subscriber_count': str,   # 👥 Número de suscriptores
+            'video_count': str,        # 📹 Cantidad de videos
+            'view_count': str,         # 👀 Vistas totales
+            'latest_videos': [...]     # 🎬 Últimos videos (si se solicitó)
+        }
+
+    Ejemplo:
+        >>> canal = await search_youtube_channel(ctx, "Python en español")
+        >>> print(f"{canal['title']} tiene {canal['subscriber_count']} subs")
     """
+    # 💬 Aquí ocurre la "elicitation" - pedimos info adicional al usuario
+    # Le preguntamos si quiere incluir los últimos videos del canal
     result = await ctx.elicit(
         message="Por favor, proporciona el nombre del canal de YouTube que deseas buscar.",
-        response_type=YouTubeChannelInfo
+        response_type=YouTubeChannelInfo  # 📋 Tipo de dato que esperamos recibir
     )
 
+    # 🔀 Manejamos las diferentes respuestas del usuario
     if result.action == "accept":
+        # ✅ Usuario aceptó y proporcionó la información
         channel = result.data
     elif result.action == "decline":
+        # ❌ Usuario rechazó proporcionar la información
         return "Information not provided"
     else:  # cancel
+        # 🚫 Usuario canceló la operación
         return "Operation cancelled"
 
+    # 🔒 Verificamos que el servicio de YouTube esté disponible
     if not youtube_service:
         return {
             "error": "YOUTUBE_API_KEY not set. Please set the environment variable.",
             "instructions": "Get your API key from https://console.cloud.google.com/apis/credentials"
         }
 
-    # Buscar el canal
+    # 🔍 Buscar canales por nombre
+    # Obtenemos hasta 5 resultados para dar más opciones
     search_result = youtube_service.search_channels(
-        query=channel_name, max_results=1)
+        query=channel_name, max_results=5)
 
-    if not search_result.get('success') or not search_result.get('channels'):
-        return {"error": "Channel not found"}
+    # ❌ Verificamos que encontramos canales
+    if not search_result.get('success'):
+        return {"error": f"Search failed: {search_result.get('error')}"}
 
-    channel_data = search_result['channels'][0]
-    channel_id = channel_data['channel_id']
+    if not search_result.get('channels'):
+        return {"error": "No channels found matching that name"}
 
-    # Obtener detalles completos del canal
-    channel_details = youtube_service.get_channel_details(
-        channel_id, include_statistics=True)
-
-    if not channel_details.get('success'):
-        return channel_details
-
-    channel_info = {
-        'title': channel_details['title'],
-        'description': channel_details['description'],
-        'url': channel_details['url'],
-        'thumbnail': channel_details['thumbnail'],
-        'subscriber_count': channel_details.get('subscriber_count'),
-        'video_count': channel_details.get('video_count'),
-        'view_count': channel_details.get('view_count')
+    # 📦 Construimos la respuesta con todos los canales encontrados
+    channels_info = {
+        'query': channel_name,
+        'total_results': search_result['total_results'],
+        'channels': []
     }
 
-    if channel.include_latest_videos:
-        # Obtener los últimos vídeos del canal
-        videos_result = youtube_service.get_channel_videos(
-            channel_id, max_results=5)
+    # 📋 Agregamos la información de cada canal encontrado
+    for channel_data in search_result['channels']:
+        channel_info = {
+            'channel_id': channel_data['channel_id'],  # 🆔 ID del canal
+            'title': channel_data['title'],  # 📌 Nombre del canal
+            'description': channel_data['description'],  # 📄 Descripción
+            'url': channel_data['url'],  # 🔗 URL del canal
+            'thumbnail': channel_data['thumbnail'],  # 🖼️ Imagen del canal
+            # 📅 Fecha de creación
+            'published_at': channel_data['published_at'],
+            # � Estadísticas detalladas
+            # � Suscriptores
+            'subscriber_count': channel_data.get('subscriber_count', 0),
+            # � Total de videos
+            'video_count': channel_data.get('video_count', 0),
+            # � Vistas totales
+            'view_count': channel_data.get('view_count', 0),
+            'country': channel_data.get('country', 'N/A')  # 🌍 País del canal
+        }
+        channels_info['channels'].append(channel_info)
 
-        if videos_result.get('success'):
-            channel_info['latest_videos'] = videos_result['videos']
-
-    return channel_info
+    # 🎉 Retornamos toda la información de los canales encontrados
+    return channels_info
